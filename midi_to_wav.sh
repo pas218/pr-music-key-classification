@@ -5,11 +5,13 @@ for midifile in POP909-Dataset/POP909/*; do
         echo "$midifilenum"
 
         for file in soundfonts/*; do
-            sffilename="${file##*/}"
-            sffilename="${sffilename%%.*}"
-            # echo "$file"
-            # echo "$sffilename"
-            fluidsynth -n -i -F "sound_outputs/output_${midifilenum}_${sffilename}.wav" $file ./POP909-Dataset/POP909/$midifilenum/$midifilenum.mid
+            if [[ "$file" == *.sf2 ]]; then
+                sffilename="${file##*/}"
+                sffilename="${sffilename%%.*}"
+                # echo "$file"
+                # echo "$sffilename"
+                fluidsynth -n -i -F "sound_outputs/output_${midifilenum}_${sffilename}.wav" $file ./POP909-Dataset/POP909/$midifilenum/$midifilenum.mid
+            fi
         done
 
 
