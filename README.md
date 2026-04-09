@@ -4,6 +4,9 @@
 Using the POP909 dataset, we leverage PyTorch to train a CNN-LSTM model to classify musical keys. We utilize Spatial Pyramid Pooling to make the model's processing agnostic to input lengths, allowing arbitrarily long songs to be classified (HOPEFULLY).
 
 ## Requirements
+### Python 3.11 & Torch
+Use Python 3.11 w/ cuda 12.6 Torch/TorchVision/TorchAudio for faster conversion to spectrograms
+
 ### FluidSynth
 Converting from MIDI to WAV requires FluidSynth
 
