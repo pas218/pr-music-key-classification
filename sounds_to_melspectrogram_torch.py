@@ -39,7 +39,7 @@ for sound_file in sound_directory.glob('*.wav'):
 
     mel_spec_db_cpu = mel_spec_db.cpu().squeeze().numpy()
 
-    plt.imshow(mel_spec_db_cpu, aspect='auto', origin='lower')
+    plt.imshow(mel_spec_db_cpu, aspect='auto', origin='lower', cmap='gray')
     plt.tight_layout()
     plt.axis('off')
     plt.savefig(f"{SPECTROGRAM_OUTPUTS_PATH}/{spect_filename}.png", bbox_inches='tight', transparent=True, pad_inches=0.0)
