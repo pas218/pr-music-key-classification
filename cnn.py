@@ -6,7 +6,7 @@ class SimpleCNN(nn.Module):
     def __init__(self, num_classes=24):
         super(SimpleCNN, self).__init__()
         # Input: 3 x 450 x 600
-        self.conv1 = nn.Conv2d(3, 16, kernel_size=3, padding=1) # 16 x 450 x 600
+        self.conv1 = nn.Conv2d(1, 16, kernel_size=3, padding=1) # 16 x 450 x 600
         self.pool = nn.MaxPool2d(2, 2) # Reduces size by half
         self.conv2 = nn.Conv2d(16, 32, kernel_size=3, padding=1) # 32 x 225 x 300
         

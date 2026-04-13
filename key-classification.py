@@ -16,6 +16,9 @@ import torch.nn as nn
 from torch.autograd import Variable
 from PIL import Image
 
+def get_first_3_channels_lambda(x):
+    return x[:3, :, :]
+
 labels_map = {
     0: 'Ab:maj',
     1: 'A:maj',
@@ -51,77 +54,84 @@ labels_map = {
 #])
 
 transform = v2.Compose([
-    v2.Lambda(lambda x: x[:3, :, :]),
+    v2.Lambda(get_first_3_channels_lambda),
+    v2.Grayscale(num_output_channels=1),
     v2.Resize((450, 600), antialias=True),
     v2.ToDtype(torch.float32, scale=True) # Recommended: converts to float and scales to [0, 1]
 ])
 
-batch_size = 4
-num_epochs = 1
-soundfont = "arachnosf"
 
-dataset = cd.CustomImageDataset(annotations_file=f'./dataset/{soundfont}/labels.csv', img_dir=f'./dataset/{soundfont}/images', transform=transform)
+def main():
+    batch_size = 4
+    num_epochs = 1
+    soundfont = "arachnosf"
 
-dataset_loader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=2)
+    dataset = cd.CustomImageDataset(annotations_file=f'./dataset/{soundfont}/labels.csv', img_dir=f'./dataset/{soundfont}/images', transform=transform)
 
-#trainloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size, shuffle=True, num_workers=2)
+    dataset_loader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=2)
 
-#testset = cd.CustomImageDataset(annotations_file=f'./dataset/{soundfont}/labels.csv', img_dir=f'./dataset/{soundfont}/images', transform=transform)
+    #trainloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size, shuffle=True, num_workers=2)
 
-#testloader = torch.utils.data.DataLoader(testset, batch_size=batch_size, shuffle=False, num_workers=2)
+    #testset = cd.CustomImageDataset(annotations_file=f'./dataset/{soundfont}/labels.csv', img_dir=f'./dataset/{soundfont}/images', transform=transform)
 
-
-image, label = dataset.__getitem__(33)
-#print(image.dtype)
-#exit()
-#to_pil = transforms.ToPILImage()
-#img = to_pil(image)
-
-# Open in the default system image viewer
-#img.show()
-
-# Initialize model, loss, and optimizer
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-print(device)
-model = SimpleCNN(num_classes=24).to(device)
-criterion = nn.CrossEntropyLoss()
-optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
-
-counter = 0
-# Training Loop
-model.train() # Set model to training mode
-for epoch in range(num_epochs):
-    print(epoch)
-    for images, labels in dataset_loader:
-        print(counter)
-        counter += 1
-        #print("1")
-        images, labels = images.to(device), labels.to(device)
-        #print("2")
-        # Forward pass
-        outputs = model(images)
-        #print("3")
-        loss = criterion(outputs, labels)
-        #print("4")
-        # Backward pass and optimization
-        optimizer.zero_grad() # Clear gradients from previous step
-        #print("5")
-        loss.backward()       # Compute gradients
-        #print("6")
-        optimizer.step()       # Update weights
-        #print("7")
+    #testloader = torch.utils.data.DataLoader(testset, batch_size=batch_size, shuffle=False, num_workers=2)
 
 
-path = "./dataset/arachnosf/images/spect_005_arachnosf.png"
-img = decode_image(path)
-img_tensor = transform(img).unsqueeze(0) # Add batch dimension: [1, 3, 450, 600]
+    image, label = dataset.__getitem__(33)
+    #print(image.dtype)
+    #exit()
+    #to_pil = transforms.ToPILImage()
+    #img = to_pil(image)
 
-# 2. Perform Inference
-model.eval() # Set to evaluation mode
-with torch.no_grad(): # Disable gradient calculation for efficiency
-    img_tensor = img_tensor.to(device)
-    output = model(img_tensor)
-    
-    # Get the predicted class index
-    _, predicted_class = torch.max(output, 1)
-    print(f"Predicted Class Index: {predicted_class.item()}")
+    # Open in the default system image viewer
+    #img.show()
+
+    # Initialize model, loss, and optimizer
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(device)
+    model = SimpleCNN(num_classes=24).to(device)
+    criterion = nn.CrossEntropyLoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+
+    counter = 0
+    # Training Loop
+    model.train() # Set model to training mode
+    for epoch in range(num_epochs):
+        print(epoch)
+        for images, labels in dataset_loader:
+            print(counter)
+            counter += 1
+            #print("1")
+            images, labels = images.to(device), labels.to(device)
+            #print("2")
+            # Forward pass
+            outputs = model(images)
+            #print("3")
+            loss = criterion(outputs, labels)
+            #print("4")
+            # Backward pass and optimization
+            optimizer.zero_grad() # Clear gradients from previous step
+            #print("5")
+            loss.backward()       # Compute gradients
+            #print("6")
+            optimizer.step()       # Update weights
+            #print("7")
+
+
+    path = "./dataset/arachnosf/images/spect_005_arachnosf.png"
+    img = decode_image(path)
+    img_tensor = transform(img).unsqueeze(0) # Add batch dimension: [1, 3, 450, 600]
+
+    # 2. Perform Inference
+    model.eval() # Set to evaluation mode
+    with torch.no_grad(): # Disable gradient calculation for efficiency
+        img_tensor = img_tensor.to(device)
+        output = model(img_tensor)
+        
+        # Get the predicted class index
+        _, predicted_class = torch.max(output, 1)
+        print(f"Predicted Class Index: {predicted_class.item()}")
+
+
+if __name__ == '__main__':
+    main()
