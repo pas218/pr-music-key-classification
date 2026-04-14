@@ -8,13 +8,14 @@ import matplotlib.pyplot as plt
 import custom_dataset as cd
 from cnn import SimpleCNN
 from torchvision.io import decode_image
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset, DataLoader, random_split
 from torchvision import transforms, utils
 from torchvision.transforms import v2
 from torchvision.transforms.functional import to_pil_image
 import torch.nn as nn
 from torch.autograd import Variable
 from PIL import Image
+from tqdm import tqdm
 
 def get_first_3_channels_lambda(x):
     return x[:3, :, :]
@@ -46,6 +47,17 @@ labels_map = {
     23: 'G:min'
 }
 
+soundfont_map = {
+    0: "arachnosf",
+    1: "fzero",
+    2: "genuser",
+    3: "pokemonredgreen",
+    4: "sonic2piano"
+}
+
+TRAIN_SET_PROPORTION = .8
+VAL_SET_PROPORTION = 1 - TRAIN_SET_PROPORTION
+
 
 # 2. Define Transform pipeline
 #transform = transforms.Compose([
@@ -62,13 +74,17 @@ transform = v2.Compose([
 
 
 def main():
-    batch_size = 4
+    batch_size = 25
     num_epochs = 1
-    soundfont = "arachnosf"
 
-    dataset = cd.CustomImageDataset(annotations_file=f'./dataset/{soundfont}/labels.csv', img_dir=f'./dataset/{soundfont}/images', transform=transform)
+    dataset = cd.CustomImageDataset(annotations_file=f'./dataset/labels.csv', img_dir=f'./dataset/spects', num_soundfonts=5, soundfont_map=soundfont_map, transform=transform)
+    train_size = int(TRAIN_SET_PROPORTION * len(dataset))
+    val_size = len(dataset) - train_size
 
-    dataset_loader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=2)
+    train_dataset, val_dataset = random_split(dataset, [train_size, val_size])
+
+    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=10)
+    val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=10)
 
     #trainloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size, shuffle=True, num_workers=2)
 
@@ -77,7 +93,7 @@ def main():
     #testloader = torch.utils.data.DataLoader(testset, batch_size=batch_size, shuffle=False, num_workers=2)
 
 
-    image, label = dataset.__getitem__(33)
+    # image, label = dataset.__getitem__(33)
     #print(image.dtype)
     #exit()
     #to_pil = transforms.ToPILImage()
@@ -93,44 +109,56 @@ def main():
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
-    counter = 0
     # Training Loop
     model.train() # Set model to training mode
     for epoch in range(num_epochs):
-        print(epoch)
-        for images, labels in dataset_loader:
-            print(counter)
-            counter += 1
-            #print("1")
+        train_loop = tqdm(train_loader, leave=True)
+        for batch_idx, (images, labels) in enumerate(train_loop):
             images, labels = images.to(device), labels.to(device)
-            #print("2")
+            
             # Forward pass
             outputs = model(images)
-            #print("3")
             loss = criterion(outputs, labels)
-            #print("4")
             # Backward pass and optimization
             optimizer.zero_grad() # Clear gradients from previous step
-            #print("5")
             loss.backward()       # Compute gradients
-            #print("6")
             optimizer.step()       # Update weights
-            #print("7")
+
+            train_loop.set_description(f"Training Epoch [{epoch + 1}/{num_epochs}]")
 
 
-    path = "./dataset/arachnosf/images/spect_005_arachnosf.png"
-    img = decode_image(path)
-    img_tensor = transform(img).unsqueeze(0) # Add batch dimension: [1, 3, 450, 600]
+    # path = "./dataset/spects/spect_005_fzero.png"
+    # img = decode_image(path)
+    # img_tensor = transform(img).unsqueeze(0) # Add batch dimension: [1, 3, 450, 600]
 
     # 2. Perform Inference
+
+    total_loss = 0
+    correct = 0
+    total = 0
+
     model.eval() # Set to evaluation mode
     with torch.no_grad(): # Disable gradient calculation for efficiency
-        img_tensor = img_tensor.to(device)
-        output = model(img_tensor)
+        val_loop = tqdm(val_loader, leave=True)
+        for batch_idx, (images, labels) in enumerate(val_loop):
+            images, labels = images.to(device), labels.to(device)
+
+            outputs = model(images)
+
+            loss = criterion(outputs, labels)
+            total_loss += loss.item() * images.size(0)
+
+            _, predicted_class = torch.max(outputs, 1)
+            total += labels.size(0)
+            correct += (predicted_class == labels).sum().item()
+            val_loop.set_description(f"Validating Model...")
         
         # Get the predicted class index
-        _, predicted_class = torch.max(output, 1)
-        print(f"Predicted Class Index: {predicted_class.item()}")
+    
+    avg_val_loss = total_loss / len(val_loader.dataset)
+    val_accuracy = 100 * correct / total
+
+    print(f"Validation Loss: {avg_val_loss:.4f}, Accuracy: {val_accuracy:.2f}%")
 
 
 if __name__ == '__main__':
