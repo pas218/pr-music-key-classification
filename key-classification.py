@@ -7,6 +7,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import custom_dataset as cd
 from cnn import SimpleCNN
+from CNN_LSTM import CNN_LSTM
 from torchvision.io import decode_image
 from torch.utils.data import Dataset, DataLoader, random_split
 from torchvision import transforms, utils
@@ -75,7 +76,7 @@ transform = v2.Compose([
 
 def main():
     batch_size = 25
-    num_epochs = 1
+    num_epochs = 5
 
     dataset = cd.CustomImageDataset(annotations_file=f'./dataset/labels.csv', img_dir=f'./dataset/spects', num_soundfonts=5, soundfont_map=soundfont_map, transform=transform)
     train_size = int(TRAIN_SET_PROPORTION * len(dataset))
@@ -105,7 +106,7 @@ def main():
     # Initialize model, loss, and optimizer
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(device)
-    model = SimpleCNN(num_classes=24).to(device)
+    model = CNN_LSTM(num_classes=24).to(device)
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
@@ -126,10 +127,6 @@ def main():
 
             train_loop.set_description(f"Training Epoch [{epoch + 1}/{num_epochs}]")
 
-
-    # path = "./dataset/spects/spect_005_fzero.png"
-    # img = decode_image(path)
-    # img_tensor = transform(img).unsqueeze(0) # Add batch dimension: [1, 3, 450, 600]
 
     # 2. Perform Inference
 
