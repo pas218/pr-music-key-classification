@@ -18,47 +18,11 @@ from torch.autograd import Variable
 from PIL import Image
 from tqdm import tqdm
 from early_stopping import EarlyStopping
-
-def get_first_3_channels_lambda(x):
-    return x[:3, :, :]
-
-labels_map = {
-    0: 'Ab:maj',
-    1: 'A:maj',
-    2: 'Bb:maj',
-    3: 'B:maj',
-    4: 'C:maj',
-    5: 'Db:maj',
-    6: 'D:maj',
-    7: 'Eb:maj',    
-    8: 'E:maj',
-    9: 'F:maj',
-    10: 'Gb:maj',
-    11: 'G:maj',
-    12: 'Ab:min',
-    13: 'A:min',
-    14: 'Bb:min',
-    15: 'B:min',
-    16: 'C:min',
-    17: 'Db:min',
-    18: 'D:min',
-    19: 'Eb:min',
-    20: 'E:min',
-    21: 'F:min',
-    22: 'Gb:min',
-    23: 'G:min'
-}
-
-soundfont_map = {
-    0: "arachnosf",
-    1: "fzero",
-    2: "genuser",
-    3: "pokemonredgreen",
-    4: "sonic2piano"
-}
+from key_classfn_utilities import *
 
 TRAIN_SET_PROPORTION = .8
 VAL_SET_PROPORTION = 1 - TRAIN_SET_PROPORTION
+NUM_SOUNDFONTS = len(soundfont_map)
 
 # Basic setup for early stopping criteria
 patience = 5  # epochs to wait after no improvement
@@ -66,11 +30,6 @@ delta = 0.01  # minimum change in the monitored metric
 best_val_loss = float("inf")  # best validation loss to compare against
 no_improvement_count = 0  # count of epochs with no improvement
 
-# 2. Define Transform pipeline
-#transform = transforms.Compose([
-#    transforms.Lambda(lambda x: x[:3, :, :]), 
-#    transforms.Resize((450, 600), antialias=True),
-#])
 
 transform = v2.Compose([
     v2.Lambda(get_first_3_channels_lambda),
@@ -84,32 +43,12 @@ def main():
     batch_size = 8
     num_epochs = 20
 
-    dataset = cd.CustomImageDataset(annotations_file=f'./dataset/labels.csv', img_dir=f'./dataset/spects', num_soundfonts=5, soundfont_map=soundfont_map, transform=transform)
-    train_size = int(TRAIN_SET_PROPORTION * len(dataset))
-    val_size = len(dataset) - train_size
+    dataset = cd.CustomImageDataset(annotations_file=f'./dataset/labels.csv', img_dir=f'./dataset/spects', num_soundfonts=NUM_SOUNDFONTS, soundfont_map=soundfont_map, transform=transform)
 
-    train_dataset, val_dataset = random_split(dataset, [train_size, val_size])
+    train_dataset, val_dataset = datasetsplit_coupled(dataset, int(len(dataset)/NUM_SOUNDFONTS), NUM_SOUNDFONTS, [TRAIN_SET_PROPORTION, VAL_SET_PROPORTION])
 
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=10)
     val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=10)
-
-    #trainloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size, shuffle=True, num_workers=2)
-
-    #testset = cd.CustomImageDataset(annotations_file=f'./dataset/{soundfont}/labels.csv', img_dir=f'./dataset/{soundfont}/images', transform=transform)
-
-    #testloader = torch.utils.data.DataLoader(testset, batch_size=batch_size, shuffle=False, num_workers=2)
-
-
-    #image, label = dataset.__getitem__(1002)
-    #print(label)
-    #exit()
-    #print(image.dtype)
-    #exit()
-    #to_pil = transforms.ToPILImage()
-    #img = to_pil(image)
-
-    # Open in the default system image viewer
-    #img.show()
 
     # Initialize model, loss, and optimizer
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -188,6 +127,8 @@ def main():
     val_accuracy = 100 * correct / total
 
     print(f"Validation Loss: {avg_val_loss:.4f}, Accuracy: {val_accuracy:.2f}%")
+
+    torch.save(model, f'model_{int(val_accuracy)}acc.pt')
 
 
 if __name__ == '__main__':
