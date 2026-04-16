@@ -17,6 +17,7 @@ import torch.nn as nn
 from torch.autograd import Variable
 from PIL import Image
 from tqdm import tqdm
+from early_stopping import EarlyStopping
 
 def get_first_3_channels_lambda(x):
     return x[:3, :, :]
@@ -80,8 +81,8 @@ transform = v2.Compose([
 
 
 def main():
-    batch_size = 10
-    num_epochs = 5
+    batch_size = 8
+    num_epochs = 20
 
     dataset = cd.CustomImageDataset(annotations_file=f'./dataset/labels.csv', img_dir=f'./dataset/spects', num_soundfonts=5, soundfont_map=soundfont_map, transform=transform)
     train_size = int(TRAIN_SET_PROPORTION * len(dataset))
@@ -116,25 +117,50 @@ def main():
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
-    # Training Loop
-    model.train() # Set model to training mode
-    for epoch in range(num_epochs):
-        train_loop = tqdm(train_loader, leave=True)
-        for batch_idx, (images, labels) in enumerate(train_loop):
-            images, labels = images.to(device), labels.to(device)
-            
-            # Forward pass
-            outputs = model(images)
-            loss = criterion(outputs, labels)
-            # Backward pass and optimization
-            optimizer.zero_grad() # Clear gradients from previous step
-            loss.backward()       # Compute gradients
-            optimizer.step()       # Update weights
+    # Initialize early stopping
+    early_stopping = EarlyStopping(patience=patience, delta=delta, verbose=True)
 
+    # Do training 
+
+    for epoch in range(num_epochs):
+        train_loss = 0.0
+        val_loss = 0.0
+
+        # Training phase
+        model.train()
+        train_loop = tqdm(train_loader, leave=True)
+        for batch_idx, (data, target) in enumerate(train_loop):
+            data, target = data.to(device), target.to(device)
+            optimizer.zero_grad()
+            output = model(data)
+            loss = criterion(output, target)
+            loss.backward()
+            optimizer.step()
+            train_loss += loss.item()
             train_loop.set_description(f"Training Epoch [{epoch + 1}/{num_epochs}]")
 
+        # Validation phase
+        model.eval()
+        with torch.no_grad():
+            val_loop = tqdm(val_loader, leave=True)
+            for batch_idx, (data, target) in enumerate(val_loop):
+                data, target = data.to(device), target.to(device)
+                output = model(data)
+                loss = criterion(output, target)
+                val_loss += loss.item()
+                val_loop.set_description(f"Validating Model...")
+                
+        # Average validation loss
+        val_loss /= len(val_loader)
 
-    # 2. Perform Inference
+        # Check early stopping condition
+        early_stopping.check_early_stop(val_loss)
+        
+        if early_stopping.stop_training:
+            print(f"Early stopping at epoch {epoch}")
+            break
+
+     # 2. Perform Inference
 
     total_loss = 0
     correct = 0
