@@ -189,6 +189,8 @@ def main():
 
     print(f"Validation Loss: {avg_val_loss:.4f}, Accuracy: {val_accuracy:.2f}%")
 
+    torch.save(model, f'model_{int(val_accuracy)}acc.pt')
+
 
 if __name__ == '__main__':
     main()
