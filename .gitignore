@@ -1,0 +1,8 @@
+.venv/
+*.zip
+*.png
+*.wav
+.*/
+*.sf2
+/dataset
+__pycache__/
