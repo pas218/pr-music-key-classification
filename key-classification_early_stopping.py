@@ -41,9 +41,9 @@ transform = v2.Compose([
 
 def main():
     batch_size = 8
-    num_epochs = 20
+    num_epochs = 1000
 
-    dataset = cd.CustomImageDataset(annotations_file=f'./dataset/labels.csv', img_dir=f'./dataset/spects', num_soundfonts=NUM_SOUNDFONTS, soundfont_map=soundfont_map, transform=transform)
+    dataset = cd.CustomImageDataset(annotations_file=f'./dataset/labels.csv', img_dir=f'./dataset/images', num_soundfonts=NUM_SOUNDFONTS, soundfont_map=soundfont_map, transform=transform)
 
     train_dataset, val_dataset = datasetsplit_coupled(dataset, int(len(dataset)/NUM_SOUNDFONTS), NUM_SOUNDFONTS, [TRAIN_SET_PROPORTION, VAL_SET_PROPORTION])
 
@@ -52,7 +52,7 @@ def main():
 
     # Initialize model, loss, and optimizer
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = CNN_LSTM(num_classes=24).to(device)
+    model = CNN_LSTM(num_classes=24, num_filters=16, num_hidden_units=128).to(device)
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
@@ -128,7 +128,8 @@ def main():
 
     print(f"Validation Loss: {avg_val_loss:.4f}, Accuracy: {val_accuracy:.2f}%")
 
-    torch.save(model, f'model_{int(val_accuracy)}acc.pt')
+    #torch.save(model, f'model_{int(val_accuracy)}acc.pt')
+    torch.save(model.state_dict(), 'test_weights.pth')
 
 
 if __name__ == '__main__':

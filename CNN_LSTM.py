@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class CNN_LSTM(nn.Module):
-    def __init__(self, num_classes=24, num_filters=16, num_hidden_units=128):
+    def __init__(self, input_shape=(1, 1, 450, 600), num_classes=24, num_filters=16, num_hidden_units=128):
         super(CNN_LSTM, self).__init__()
         
         # -------- Convolutional Blocks --------
@@ -23,15 +23,21 @@ class CNN_LSTM(nn.Module):
         self.bn4 = nn.BatchNorm2d(2 * num_filters)
         self.pool4 = nn.MaxPool2d((4, 2), stride=(4, 2))
 
-        # -------- LSTM --------
-        # We will infer feature size dynamically
+         # Compute LSTM input size with a dummy forward pass through CNN
+        with torch.no_grad():
+            dummy = torch.zeros(*input_shape)
+            dummy = self.pool1(F.relu(self.bn1(self.conv1(dummy))))
+            dummy = self.pool2(F.relu(self.bn2(self.conv2(dummy))))
+            dummy = self.pool3(F.relu(self.bn3(self.conv3(dummy))))
+            dummy = self.pool4(F.relu(self.bn4(self.conv4(dummy))))
+            B, C, H, W = dummy.size()
+            lstm_input_size = C * H  # this will be 96
+
         self.lstm = nn.LSTM(
-            input_size=2 * num_filters,  # will adjust after reshape
+            input_size=lstm_input_size,
             hidden_size=num_hidden_units,
             batch_first=True
         )
-
-        # -------- Fully Connected --------
         self.fc = nn.Linear(num_hidden_units, num_classes)
 
     def forward(self, x):
@@ -57,12 +63,12 @@ class CNN_LSTM(nn.Module):
         x = x.contiguous().view(B, W, C * H)
 
         # Adjust LSTM input size dynamically if needed
-        if x.size(-1) != self.lstm.input_size:
-            self.lstm = nn.LSTM(
-                input_size=x.size(-1),
-                hidden_size=self.lstm.hidden_size,
-                batch_first=True
-            ).to(x.device)
+        #if x.size(-1) != self.lstm.input_size:
+        #    self.lstm = nn.LSTM(
+        #        input_size=x.size(-1),
+        #        hidden_size=self.lstm.hidden_size,
+        #        batch_first=True
+        #    ).to(x.device)
 
         # LSTM
         x, _ = self.lstm(x)
