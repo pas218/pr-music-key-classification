@@ -6,7 +6,6 @@ from skimage import io, transform
 import numpy as np
 import matplotlib.pyplot as plt
 import custom_dataset as cd
-from cnn import SimpleCNN
 from CNN_LSTM import CNN_LSTM
 from torchvision.io import decode_image
 from torch.utils.data import Dataset, DataLoader, random_split

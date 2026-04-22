@@ -6,7 +6,6 @@ from skimage import io, transform
 import numpy as np
 import matplotlib.pyplot as plt
 import custom_dataset as cd
-from cnn import SimpleCNN
 from CNN_LSTM import CNN_LSTM
 from torchvision.io import decode_image
 from torch.utils.data import Dataset, DataLoader, random_split
@@ -128,8 +127,7 @@ def main():
 
     print(f"Validation Loss: {avg_val_loss:.4f}, Accuracy: {val_accuracy:.2f}%")
 
-    #torch.save(model, f'model_{int(val_accuracy)}acc.pt')
-    torch.save(model.state_dict(), 'test_weights.pth')
+    torch.save(model, f'model_{int(val_accuracy)}acc.pt')
 
 
 if __name__ == '__main__':
