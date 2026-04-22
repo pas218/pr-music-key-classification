@@ -32,8 +32,8 @@ transform = v2.Compose([
 ])
 
 
-def main():
-    batch_size = 10
+def main(num_filters, num_hidden_units):
+    batch_size = 16
     num_epochs = 20
 
     dataset = cd.CustomImageDataset(annotations_file=f'./dataset/labels.csv', img_dir=f'./dataset/spects', num_soundfonts=NUM_SOUNDFONTS, soundfont_map=soundfont_map, transform=transform)
@@ -45,14 +45,14 @@ def main():
 
     # Initialize model, loss, and optimizer
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = CNN_LSTM(num_classes=24).to(device)
+    model = CNN_LSTM(num_classes=24, num_filters=num_filters, num_hidden_units=num_hidden_units).to(device)
     criterion = nn.CrossEntropyLoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+    optimizer = torch.optim.Adam(model.parameters(), lr=.00075)
 
     # Training Loop
     model.train() # Set model to training mode
     for epoch in range(num_epochs):
-        train_loop = tqdm(train_loader, leave=True)
+        train_loop = tqdm(train_loader, leave=True, disable=True)
         for batch_idx, (images, labels) in enumerate(train_loop):
             images, labels = images.to(device), labels.to(device)
             
@@ -75,7 +75,7 @@ def main():
 
     model.eval() # Set to evaluation mode
     with torch.no_grad(): # Disable gradient calculation for efficiency
-        val_loop = tqdm(val_loader, leave=True)
+        val_loop = tqdm(val_loader, leave=True, disable=True)
         for batch_idx, (images, labels) in enumerate(val_loop):
             images, labels = images.to(device), labels.to(device)
 
@@ -98,6 +98,18 @@ def main():
 
     torch.save(model, f'model_{int(val_accuracy)}acc.pt')
 
+    return val_accuracy
+
 
 if __name__ == '__main__':
-    main()
+    filters = [32, 64]
+    hiddenunits = [32, 64, 128, 256, 512]
+    
+    for num_filters in filters:
+        for num_hu in hiddenunits:
+            curr_accuracy = main(num_filters=num_filters, num_hidden_units=num_hu)
+
+            print(f"Model Acc: {curr_accuracy}, FILTERS: {num_filters}, HIDDENUNITS: {num_hu}")
+            
+
+    
