@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class CNN_LSTM(nn.Module):
-    def __init__(self, num_classes=24, num_filters=128, num_hidden_units=256, dropout_rate=0):
+    def __init__(self, num_classes=24, num_filters=128, num_hidden_units=256):
         super(CNN_LSTM, self).__init__()
         
         # -------- Convolutional Blocks --------
