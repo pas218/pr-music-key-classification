@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class CNN_LSTM(nn.Module):
-    def __init__(self, num_classes=24, num_filters=16, num_hidden_units=128):
+    def __init__(self, num_classes=24, num_filters=128, num_hidden_units=256, dropout_rate=0):
         super(CNN_LSTM, self).__init__()
         
         # -------- Convolutional Blocks --------
@@ -31,6 +31,10 @@ class CNN_LSTM(nn.Module):
             batch_first=True
         )
 
+        # ------- Dropout ----------
+        self.dropout_conv = nn.Dropout2d(p=dropout_rate)
+        self.dropout_lstm = nn.Dropout(p=dropout_rate)
+
         # -------- Fully Connected --------
         self.fc = nn.Linear(num_hidden_units, num_classes)
 
@@ -43,9 +47,11 @@ class CNN_LSTM(nn.Module):
         
         # Conv Block 3
         x = self.pool3(F.relu(self.bn3(self.conv3(x))))
+        x = self.dropout_conv(x)
         
         # Conv Block 4
         x = self.pool4(F.relu(self.bn4(self.conv4(x))))
+        x = self.dropout_conv(x)
 
         # x shape: (B, C, H, W)
         B, C, H, W = x.size()
@@ -69,6 +75,8 @@ class CNN_LSTM(nn.Module):
 
         # Take last time step (OutputMode="last")
         x = x[:, -1, :]
+
+        x = self.dropout_lstm(x)
 
         # Fully connected
         x = self.fc(x)
