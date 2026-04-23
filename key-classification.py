@@ -32,7 +32,7 @@ transform = v2.Compose([
 ])
 
 
-def main(dropout_rate):
+def main():
     batch_size = 16
     num_epochs = 20
     num_filters = 128
@@ -47,7 +47,7 @@ def main(dropout_rate):
 
     # Initialize model, loss, and optimizer
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = CNN_LSTM(num_classes=24, num_filters=num_filters, num_hidden_units=num_hidden_units, dropout_rate=dropout_rate).to(device)
+    model = CNN_LSTM(num_classes=24, num_filters=num_filters, num_hidden_units=num_hidden_units).to(device)
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=.00075)
 
@@ -105,11 +105,8 @@ def main(dropout_rate):
 
 if __name__ == '__main__':
 
-    Dropouts = [.2, .3, .5]
-
-    for dropout in Dropouts:
-        curr_accuracy = main(dropout_rate=dropout)
-        print(f"Model Acc: {curr_accuracy}, Dropout Rate: {dropout}")
+    curr_accuracy = main()
+    print(f"Model Acc: {curr_accuracy}")
             
 
     
